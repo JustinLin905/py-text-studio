@@ -2,7 +2,7 @@
 
 ![Example of PyTextStudio in use](https://i.imgur.com/pbagqR9.gif)
 
-PyTextStudio is a minimal program which allows users to use, save, and load their own custom text expansions.
+PyTextStudio is a minimal program which allows you to use, save, and load your own custom text expansions.
 
 For users working with the Python file, dependencies are `pyautogui`, `pynput`, and `autocorrect`.
 
@@ -46,7 +46,7 @@ This program will automatically convert the shortword into "Hello World!". This 
 
 Typing "save" in the main menu will store your active text expansions in the included `userShortcuts.txt` file. 
 
-The user can exit the program and load their saved data later by typing "load" in the main menu. This will activate previously saved text expansions and make them usable again in the current instance. 
+The user can load their saved data later by typing "load" in the main menu. This will activate previously saved text expansions and make them usable again in the current instance. 
 
 ## help
 
@@ -62,8 +62,8 @@ This program also has a built-in autocorrect tool. If you've just misspelled a w
 
 # Notes
 
-If the user tries to save without first loading any existing data, the program will ask them if they want to overwrite their data or add the new expansions together with their old data. This helps to prevent any loss of data.
+If the user tries to save without first loading any existing data, the program will ask them if they want to overwrite their data or add the new expansions together with their old data. This helps to prevent any unintended loss of user expansions.
 
-Similarly, if the user tries to load old expansions while they have active data they haven't saved yet, the program will ask if they want to load now (erasing any new expansions they haven't saved yet) or cancel loading.
+Similarly, if the user tries to load old expansions while they have unsaved data, the program will ask if they want to load now (erasing any new expansions they haven't saved yet) or cancel loading.
 
-The program can **crash on some systems** when the user loads data, then tries to use new text expansions that they've created after loading. To avoid this, save any expansions you've created after loading, restart the program, then load again. Alternatively, you can create text expansions before loading, then save and choose to add your expansions together.
+The program can **crash on some systems** when the user loads data, then tries to use new text expansions that they've created after loading. To avoid this, save any expansions that you've created after loading, restart the program, then load again. Alternatively, you can create text expansions before loading, then save and choose to add your expansions together.
