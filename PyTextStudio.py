@@ -45,8 +45,8 @@ short_words = []
 expanded_words = []
 
 # Hotkey variables, change these to change what keys activate text expansion and autocorrect
-expansionHotkey = Key.ctrl_r
-autocorrectHotkey = Key.alt_r
+EXPANSION_HOTKEY = Key.ctrl_r
+AUTOCORRECT_HOTKEY = Key.alt_r
 
 
 
@@ -317,7 +317,7 @@ def on_press(key):
     global short_words
 
     # If right control is pressed (the text expansion hotkey)
-    if key == expansionHotkey:
+    if key == EXPANSION_HOTKEY:
 
         # Only run code below if there are active expansions
         if len(short_words) > 0:
@@ -328,7 +328,7 @@ def on_press(key):
             textExpansion()
 
     # If right alt is pressed (the autocorrect hotkey)
-    elif key == autocorrectHotkey:
+    elif key == AUTOCORRECT_HOTKEY:
 
         sleep (0.1)         # Sleep for a brief period before running select last. This gives user time to release alt, which could cause unintended actions
         
