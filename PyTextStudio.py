@@ -14,6 +14,7 @@
 # whatever you like!
 
 # Written by Justin Lin in August 2020
+# v2.0.0 published in November 2020
 
 ######################################################################
 
@@ -37,25 +38,25 @@ spell = Speller()
 # Main running variable
 running = True
 
-# Recently loaded bool, controls warnings to protect user save data
-recentlyLoaded = False
-
 # Lists to contain user's short words and the corresponding expanded text
 short_words = []
 expanded_words = []
 
 # Hotkey variables, change these to change what keys activate text expansion and autocorrect
-EXPANSION_HOTKEY = Key.ctrl_r
-AUTOCORRECT_HOTKEY = Key.alt_r
+expansionHotkey = Key.ctrl_r
+autocorrectHotkey = Key.alt_r
+
+
+
 
 
 
 ### FUNCTIONS ###
 
 # Select last function, selects the last typed word using CTRL+SHIFT+LEFT, then copies it
-def selectLast():
+def select_last():
 
-    # Using pynput seems to be the only way to automate CTRL+SHIFT+LEFT properly
+    # Using pynput to simulate individual keys seems to be the only way to automate CTRL+SHIFT+LEFT properly
     keyControl.press(Key.ctrl)
     keyControl.press(Key.shift)
     keyControl.press(Key.left)
@@ -68,8 +69,11 @@ def selectLast():
     pyautogui.hotkey("ctrl", "c")
 
 
+
+
+
 # Create new expansion function, used to add new text shortcuts and expansions 
-def createNewExpansion():
+def create_new_expansion():
 
     newShortWord = str(input("\nEnter a short word that you would like to expand: "))
 
@@ -84,104 +88,130 @@ def createNewExpansion():
 
 
 
-# Function used to save shortcuts to userShortcuts.txt
-def saveFile():
+
+# Function used to save shortcuts to a selected save file
+def save_file():
 
     # Make the word lists global to access them in this function
     global short_words
     global expanded_words
-    global recentlyLoaded
 
-    # Check if the save file is empty
-    fileSize = os.path.getsize("userShortcuts.txt")
+    # Data match variable, used to check if save files contain potentially sensitive data from user
+    dataMatch = 0
 
-    # If the save file is empty or the user has loaded recently, go straight to saving
-    if fileSize == 0 or recentlyLoaded == True:
+    # File size variable, used to check if save file is empty
+    fileSize = 0
 
-        with open ("userShortcuts.txt", "wb") as f:
+    # Loaded short words / expanded words lists, used to temporarily store loaded data from save file
+    loaded_short_words = []
+    loaded_expanded_words = []
 
-            pickle.dump ([short_words, expanded_words], f)
+    # Ask user which profile to save to
+    profileChoice = str(input("\nWhere would you like to save? (file name without .txt): "))
 
-            print ("\n\n#######################################################################################")
+    saveFileName = r"savefiles\{0}.txt".format(profileChoice)
 
-            print ('\nYour text expansions have been saved successfully. Type "load" to access them later.')
 
-            print ("\nYour short words list:", short_words)
-            print ("Your expanded words list:", expanded_words)
+    # First, check if the user is saving to a file which has matching short words compared to currect active short words.
+    # If there are no matches, it means that they might overwrite sensitive data that they saved before. Ask user to confirm saving.
+    # If there are several matches between the save file data and current data, or the selected file is empty, go straight to saving.
 
-            print ("\n########################################################################################")
+    # Check if the save file is empty. If the save file doesn't exist, the program will create the file then save to it
+    try:
 
-    # If the save file has data that may be overwritten, warn the user
-    else:
+        fileSize = os.path.getsize(saveFileName)
 
-        print ("\nATTENTION: It looks like you already have some text expansions saved from an earlier time.")
-        print("Would you like to overwrite this save data with your current expansions, or add the current expansions together with your old ones?")
+        # Attempt loading from the selected file
+        with open (saveFileName, "rb") as f:
+                
+            loaded_short_words, loaded_expanded_words = pickle.load(f)
+
+        # Iterate through the current shortcuts and compare them to save data. If there is a match, increase dataMatch
+        for i in range(len(short_words)):
+
+            if short_words[i] == loaded_short_words[i]:
+
+                dataMatch += 1
+
+    # Catch exceptions to prevent crashes
+    except FileNotFoundError:
+
+        fileSize = 0
+
+    except IndexError:
+
+        fileSize = 0
+
+    except EOFError:
+
+        fileSize = 0
+
+    
+
+    # If matches make up less than half of data on save file, and file is not empty, ask user if they want to overwrite or add. 
+    # This is to help prevent accidental overwriting.
+    if dataMatch < len(loaded_short_words) / 2 and fileSize != 0:
+
+        print ("\nATTENTION: It looks like you already have some expansions saved on this file from an earlier time.")
+        print("Would you like to overwrite this save data with your current expansions, or add the current expansions along with your old ones?")
 
         while True:
 
             overwriteInput = str(input("\nOverwrite or add? (overwrite/add): "))
 
-            if overwriteInput == "overwrite" or overwriteInput == "add":
 
-                # If the user chooses to overwrite their save data
-                if overwriteInput == "overwrite":
+            # If the user chooses to overwrite their save data
+            if overwriteInput == "overwrite":
 
-                    # Save current active expansions, overwriting any existing data
-                    with open ("userShortcuts.txt", "wb") as f:
+                # Save current active expansions, overwriting any existing data
+                with open (saveFileName, "wb") as f:
 
-                        pickle.dump ([short_words, expanded_words], f)
+                    pickle.dump ([short_words, expanded_words], f)
 
-                        print ("\n\n#######################################################################################")
+                print ("\n\n----------------------------------------------------------------------------------------")
 
-                        print ('\nYour text expansions have been saved successfully. Type "load" to access them later.')
+                print ('\nYour text expansions have been saved successfully. Type "load" to access them later.')
 
-                        print ("\nYour short words list:", short_words)
-                        print ("Your expanded words list:", expanded_words)
+                print ("\nYour short words list:", short_words)
+                print ("Your expanded words list:", expanded_words)
 
-                        print ("\n########################################################################################")
+                print ("\n----------------------------------------------------------------------------------------")
 
-                        # Set this to true, since data was overwritten during this process
-                        recentlyLoaded = True
+                # Break this input loop
+                break
 
-                        # Break this input loop
-                        break
+            # If the user chooses to add their expansions on top of their save data
+            elif overwriteInput == "add":
 
-                # If the user chooses to add their expansions on top of their save data
-                else:
+                # First, load the existing data
+                with open (saveFileName, "rb") as f:
 
-                    # First, load the existing data
-                    with open ("userShortcuts.txt", "rb") as f:
+                    loaded_short_words, loaded_expanded_words = pickle.load(f)
 
-                        loaded_short_words, loaded_expanded_words = pickle.load(f)
+                    # Combine current data and save data
+                    short_words = short_words + loaded_short_words
+                    expanded_words = expanded_words +loaded_expanded_words
 
-                        # Combine current data and save data
-                        short_words = short_words + loaded_short_words
-                        expanded_words = expanded_words +loaded_expanded_words
+                    # Remove any duplicates that may be in the lists from the combining process
+                    short_words = list(dict.fromkeys(short_words))
+                    expanded_words = list(dict.fromkeys(expanded_words))
 
-                        # Remove any duplicates that may be in the lists from the combining process
-                        short_words = list(dict.fromkeys(short_words))
-                        expanded_words = list(dict.fromkeys(expanded_words))
+                # Save all of the text expansions
+                with open (saveFileName, "wb") as f:
 
-                    # Save all of the text expansions
-                    with open ("userShortcuts.txt", "wb") as f:
+                    pickle.dump ([short_words, expanded_words], f)
 
-                        pickle.dump ([short_words, expanded_words], f)
+                print ("\n\n----------------------------------------------------------------------------------------")
 
-                        # Return success message
-                        print ("\n\n#######################################################################################")
+                print ('\nYour text expansions have been saved successfully. Type "load" to access them later.')
 
-                        print ('\nYour text expansions have been saved successfully. Type "load" to access them later.')
+                print ("\nYour short words list:", short_words)
+                print ("Your expanded words list:", expanded_words)
 
-                        print ("\nYour short words list:", short_words)
-                        print ("Your expanded words list:", expanded_words)
+                print ("\n----------------------------------------------------------------------------------------")
 
-                        print ("\n########################################################################################")
-
-                        # Set this to true, since data was loaded during this process
-                        recentlyLoaded = True
-
-                        # Break this input loop
-                        break
+                # Break this input loop
+                break
 
             else:
 
@@ -189,94 +219,76 @@ def saveFile():
 
 
 
+    # If save file is deemed safe, go straight to saving instead of asking for user input
+    else:
+        
+        # Open save file and save current active expansions into file
+        with open (saveFileName, "wb") as f:
 
-# Function used to load shortcuts from userShortcuts.txt
-def loadFile():
+            pickle.dump ([short_words, expanded_words], f)
 
+        print ("\n\n----------------------------------------------------------------------------------------")
+
+        print ('\nYour text expansions have been saved successfully. Type "load" to access them later.')
+
+        print ("\nYour short words list:", short_words)
+        print ("Your expanded words list:", expanded_words)
+
+        print ("\n----------------------------------------------------------------------------------------")
+
+
+
+
+
+# Function used to load shortcuts from a selected save file
+def load_file():
+
+    # Make the word lists global to access them in this function
     global short_words
     global expanded_words
-    global recentlyLoaded
 
-    # Check if the save file is empty
-    fileSize = os.path.getsize("userShortcuts.txt")
+    # Ask user which profile to load from. Ask again if input is not an existing save file
+    while True:
 
-    if fileSize != 0:
+        profileChoice = str(input("\nWhere would you like to load from? (file name without .txt): "))
 
-        with open ("userShortcuts.txt", "rb") as f:
+        try:
 
-            loaded_short_words, loaded_expanded_words = pickle.load(f)
+            saveFileName = r"savefiles\{0}.txt".format(profileChoice)
 
-            # Check if there are any new expansions that were created this session that don't match the load data
-            if len(short_words) != 0 and short_words != loaded_short_words:
+            # Load from user choice using pickle
+            with open (saveFileName, "rb") as f:
+                    
+                loaded_short_words, loaded_expanded_words = pickle.load(f)
 
-                print ("\nATTENTION: Loading now will overwrite any new shortcuts that you haven't saved yet.")
+            break
 
-                while True:
+        except FileNotFoundError:
 
-                    loadInput = str(input("Proceed? (yes/no): "))
+            print ("Oops! A save file of that name doesn't exist. Please try again.")
 
-                    if loadInput == "yes" or loadInput == "no":
+        
+    # Set the active shortcuts and expansions to the ones just loaded
+    short_words = loaded_short_words
+    expanded_words = loaded_expanded_words
 
-                        if loadInput == "yes":
+    print ("\n\n-----------------------------------------------------------------------")
 
-                            short_words = loaded_short_words
-                            expanded_words = loaded_expanded_words
+    print ('\nYour text expansions have been loaded successfully.')
 
-                            print ("\n\n###################################################################")
+    print ("\nYour short words list:", short_words)
+    print ("Your expanded words list:", expanded_words)
 
-                            print ('\nYour text expansions have been loaded successfully.')
-
-                            print ("\nYour short words list:", short_words)
-                            print ("Your expanded words list:", expanded_words)
-
-                            print ("\n###################################################################")
-
-
-                            # Set recently loaded to true, so data overwrite warning won't show the next time user tries to save
-                            recentlyLoaded = True
-
-                            # Break this input loop
-                            break
-
-                        else:
-
-                            # Break this input loop
-                            break
-
-                    else:
-
-                        print ("Invalid input, please try again.")
+    print ("\n-----------------------------------------------------------------------")
 
 
-            # If it is safe to load, go straight to loading data
-            else:
-
-                short_words = loaded_short_words
-                expanded_words = loaded_expanded_words
-
-                print ("\n\n###################################################################")
-
-                print ('\nYour text expansions have been loaded successfully.')
-
-                print ("\nYour short words list:", short_words)
-                print ("Your expanded words list:", expanded_words)
-
-                print ("\n###################################################################")
-
-                # Set recently loaded to true, so data overwrite warning won't show the next time user tries to save
-                recentlyLoaded = True
-
-
-    else:
-
-        print ("The save file is empty, there is nothing to load!")
 
 
 
 # Text expansion function, used to expand shortcut words into their corresponding expanded text
-def textExpansion ():
+def text_expansion ():
 
-    # Store what was copied from the selectLast function in variable selectedWord
+    # Store what was copied from the select_last function in variable selectedWord
     selectedWord = Tk().clipboard_get()
 
     # If the selected word is one of user's shortwords
@@ -288,7 +300,7 @@ def textExpansion ():
         # Find the corresponding expanded text
         expanded = expanded_words[int(wordIndex)]
 
-        # Sleep a little more to give more time to release right enter
+        # Sleep a little more to give more time to release right control
         sleep(0.05)
 
         # Automatically type out the expanded text
@@ -296,18 +308,23 @@ def textExpansion ():
 
 
 
+
+
 # Autocorrect function, corrects the selected word into the closest word match using autocorrect
 def autocorrect():
 
-    # Store what was copied from the selectLast function in variable selectedWord
+    # Store what was copied from the select_last function in variable selectedWord
     selectedWord = Tk().clipboard_get()
 
     # Autocorrect by finding most likely word match to selectedWord, then typewrite the corrected word using pyautogui
     correctedWord = spell(str(selectedWord))
 
-    sleep(0.1)             # Sleep a little longer to give user to time to release right alt key
+    # Sleep a little longer to give user to time to release right alt key
+    sleep(0.1)
 
     pyautogui.typewrite(correctedWord)
+
+
 
 
 
@@ -317,22 +334,24 @@ def on_press(key):
     global short_words
 
     # If right control is pressed (the text expansion hotkey)
-    if key == EXPANSION_HOTKEY:
+    if key == expansionHotkey:
 
         # Only run code below if there are active expansions
         if len(short_words) > 0:
 
-            sleep(0.1)          # Sleep for a brief period before running select last. This gives user time to release cntrl, which could cause unintended actions
+            # Sleep for a brief period before running select last. This gives user time to release cntrl, which could cause unintended actions
+            sleep(0.1)          
 
-            selectLast()
-            textExpansion()
+            select_last()
+            text_expansion()
 
     # If right alt is pressed (the autocorrect hotkey)
-    elif key == AUTOCORRECT_HOTKEY:
+    elif key == autocorrectHotkey:
 
-        sleep (0.1)         # Sleep for a brief period before running select last. This gives user time to release alt, which could cause unintended actions
+        # Sleep for a brief period before running select last. This gives user time to release alt, which could cause unintended actions
+        sleep (0.1)         
         
-        selectLast()
+        select_last()
         autocorrect()   
 
 
@@ -345,15 +364,24 @@ def on_press(key):
 
 ### MAIN PROGRAM ###
 
-# Start keyboard listener
+# Start keyboard listener so program can detect when user presses expansion or autocorrect hotkeys
 listener = Listener(
     on_press=on_press)
 listener.start()
 
+# Print intro text
+
+print ("\n █▀█ █▄█ ▀█▀ █▀▀ ▀▄▀ ▀█▀ █▀ ▀█▀ █░█ █▀▄ █ █▀█  v2.0.0")
+print (" █▀▀ ░█░ ░█░ ██▄ █░█ ░█░ ▄█ ░█░ █▄█ █▄▀ █ █▄█  .py")
+
+print ("\n------------------------------------------------------")
 
 print ("\nWelcome to PyTextStudio!")
+print ("Remember to save regularly.")
 
 
+
+# Main Loop
 while running:
 
     userInput = str(input("\nWhat would you like to do? (new/save/load/help): "))
@@ -363,20 +391,22 @@ while running:
         # If user types in new, call the function to create a new text expansion
         if userInput == "new":
 
-            createNewExpansion()
+            create_new_expansion()
 
         # If user types in save, save their current text expansions using the save file function
         elif userInput == "save":
 
-            saveFile()
+            save_file()
 
         # If user types in load, load text expansions using the load file function
         elif userInput == "load":
 
-            loadFile()
+            load_file()
 
         # If user types in help, print help message
         else:
+
+            print ("\n------------------------------------------------------------------------------")
 
             print ("\nPyTextStudio lets you make and save your own text expansions.")
 
@@ -386,7 +416,11 @@ while running:
 
             print ("\nThis program also has a built-in autocorrect tool. If you've misspelled your last typed word, \nhit Right Alt to autocorrect it to the closest word match.")
 
-            print ('\nThere is also a Save / Load feature. \nType in "save" to save your current active text expansions, or type "load" to use shortcuts that you \nhave saved before.')
+            print ('\nThere is a Save / Load feature for your expansions as well. \nType in "save" and choose a file name to save your current active text expansions. If a file of that name \ndoesn\'t already exist, the program will create it for you.')
+
+            print ('Type "load" and choose a file name to use shortcuts that you have saved before.')
+
+            print ("\n------------------------------------------------------------------------------")
 
 
     # Print error message upon invalid input
